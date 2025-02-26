@@ -7,15 +7,15 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Title of the app
-st.title("Asset Class Analysis: Correlation, Monte Carlo Simulation, and Markov Chain")
+st.title("💰 Asset Class Analysis: Wealth Building Strategies")
 
 # Sidebar for user inputs
-st.sidebar.header("User Inputs")
-start_date = st.sidebar.date_input("Start Date", pd.to_datetime("2018-01-01"))
-end_date = st.sidebar.date_input("End Date", pd.to_datetime("2023-10-01"))
-initial_investment = st.sidebar.number_input("Initial Investment ($)", value=10000)
-num_simulations = st.sidebar.number_input("Number of Monte Carlo Simulations", value=1000)
-time_horizon = st.sidebar.number_input("Time Horizon (Years)", value=10)
+st.sidebar.header("🎛️ User Inputs")
+start_date = st.sidebar.date_input("📅 Start Date", pd.to_datetime("2018-01-01"))
+end_date = st.sidebar.date_input("📅 End Date", pd.to_datetime("2023-10-01"))
+initial_investment = st.sidebar.number_input("💵 Initial Investment ($)", value=10000, min_value=1000, step=1000)
+num_simulations = st.sidebar.slider("🔢 Number of Monte Carlo Simulations", min_value=100, max_value=5000, value=1000)
+time_horizon = st.sidebar.slider("⏳ Time Horizon (Years)", min_value=1, max_value=30, value=10)
 
 # Define asset classes and their tickers
 tickers = {
@@ -68,7 +68,7 @@ def markov_chain_analysis(returns):
 # Main program
 def main():
     # Fetch data
-    st.write("Fetching data...")
+    st.write("📊 Fetching data...")
     yahoo_data = fetch_yahoo_data(tickers, start_date, end_date)
     bitcoin_data = fetch_bitcoin_data(start_date, end_date)
 
@@ -80,18 +80,21 @@ def main():
     returns = combined_data.pct_change().dropna()
 
     # Display correlation matrix
-    st.write("### Correlation Matrix")
+    st.write("### 📈 Correlation Matrix")
+    st.write("This table shows how different asset classes move in relation to each other.")
     correlation_matrix = returns.corr()
-    st.dataframe(correlation_matrix)
+    st.dataframe(correlation_matrix.style.background_gradient(cmap="coolwarm", vmin=-1, vmax=1))
 
     # Visualize correlation matrix
-    st.write("### Correlation Heatmap")
+    st.write("### 🌈 Correlation Heatmap")
+    st.write("This heatmap provides a visual representation of the correlation matrix.")
     plt.figure(figsize=(10, 8))
     sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", vmin=-1, vmax=1)
     st.pyplot(plt)
 
     # Monte Carlo Simulation
-    st.write("### Monte Carlo Simulation")
+    st.write("### 🎲 Monte Carlo Simulation")
+    st.write(f"This simulation shows potential portfolio values over {time_horizon} years based on historical returns.")
     portfolio_values = monte_carlo_simulation(returns, initial_investment, num_simulations, time_horizon)
 
     # Plot Monte Carlo results
@@ -104,13 +107,14 @@ def main():
     st.pyplot(plt)
 
     # Markov Chain Analysis
-    st.write("### Markov Chain Analysis")
+    st.write("### 🔄 Markov Chain Analysis")
+    st.write("This analysis shows the probability of transitioning between positive and negative return states.")
     transition_matrix = markov_chain_analysis(returns)
     st.write("#### Transition Matrix (Positive vs. Negative Returns)")
-    st.dataframe(transition_matrix)
+    st.dataframe(transition_matrix.style.background_gradient(cmap="Blues"))
 
     # Interpret Markov Chain results
-    st.write("#### Interpretation:")
+    st.write("#### 📝 Interpretation:")
     st.write("- **Positive to Positive**: Probability of staying in a positive return state.")
     st.write("- **Positive to Negative**: Probability of transitioning from positive to negative returns.")
     st.write("- **Negative to Positive**: Probability of transitioning from negative to positive returns.")
