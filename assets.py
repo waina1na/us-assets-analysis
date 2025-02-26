@@ -29,9 +29,11 @@ tickers = {
 # Fetch historical data from Yahoo Finance
 @st.cache_data  # Cache data to improve performance
 def fetch_yahoo_data(tickers, start_date, end_date):
-    data = yf.download(list(tickers.values()), start=start_date, end=end_date)['Adj Close']
-    data.columns = [f"{asset} ({ticker})" for asset, ticker in tickers.items()]
-    return data
+    data = yf.download(list(tickers.values()), start=start_date, end=end_date)
+    if 'Adj Close' not in data.columns:
+        st.error("Error: 'Adj Close' column not found in the downloaded data.")
+        return pd.DataFrame()  # Return an empty DataFrame to avoid further errors
+    return data['Adj Close']
 
 # Fetch Bitcoin data from CoinGecko
 @st.cache_data  # Cache data to improve performance
@@ -44,32 +46,15 @@ def fetch_bitcoin_data(start_date, end_date):
     btc_prices = btc_prices.loc[start_date:end_date]
     return btc_prices
 
-# Monte Carlo Simulation
-def monte_carlo_simulation(returns, initial_investment, num_simulations, time_horizon):
-    # Calculate mean and covariance of returns
-    mean_returns = returns.mean()
-    cov_matrix = returns.cov()
-
-    # Simulate portfolio returns
-    simulated_returns = np.random.multivariate_normal(mean_returns, cov_matrix, (num_simulations, time_horizon))
-    portfolio_values = initial_investment * (1 + simulated_returns).cumprod(axis=1)
-
-    return portfolio_values
-
-# Markov Chain Analysis
-def markov_chain_analysis(returns):
-    # Discretize returns into states (e.g., positive, negative)
-    states = returns.apply(lambda x: "Positive" if x > 0 else "Negative")
-
-    # Create transition matrix
-    transition_matrix = pd.crosstab(states.shift(), states, normalize="index")
-    return transition_matrix
-
 # Main program
 def main():
     # Fetch data
     st.write("📊 Fetching data...")
     yahoo_data = fetch_yahoo_data(tickers, start_date, end_date)
+    if yahoo_data.empty:
+        st.error("Failed to fetch Yahoo Finance data. Please check the tickers and date range.")
+        return  # Stop execution if data fetching fails
+
     bitcoin_data = fetch_bitcoin_data(start_date, end_date)
 
     # Combine data
