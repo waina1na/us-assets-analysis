@@ -1,7 +1,7 @@
 yfinance
 streamlit
 yfinance
-pycoingecko
+pycoingecko==4.1.0
 pandas
 numpy
 seaborn
