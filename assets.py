@@ -1,5 +1,5 @@
 import streamlit as st
-import yfinance as yf
+from alpha_vantage.timeseries import TimeSeries
 from pycoingecko import CoinGeckoAPI
 import pandas as pd
 import numpy as np
@@ -16,6 +16,7 @@ end_date = st.sidebar.date_input("📅 End Date", pd.to_datetime("2023-10-01"))
 initial_investment = st.sidebar.number_input("💵 Initial Investment ($)", value=10000, min_value=1000, step=1000)
 num_simulations = st.sidebar.slider("🔢 Number of Monte Carlo Simulations", min_value=100, max_value=5000, value=1000)
 time_horizon = st.sidebar.slider("⏳ Time Horizon (Years)", min_value=1, max_value=30, value=10)
+api_key = st.sidebar.text_input("🔑 Alpha Vantage API Key", type="password")
 
 # Define asset classes and their tickers
 tickers = {
@@ -26,14 +27,23 @@ tickers = {
     "Cash": "SHY",  # Short-term Treasury Bond ETF (proxy for cash)
 }
 
-# Fetch historical data from Yahoo Finance
+# Fetch historical data from Alpha Vantage
 @st.cache_data  # Cache data to improve performance
-def fetch_yahoo_data(tickers, start_date, end_date):
-    data = yf.download(list(tickers.values()), start=start_date, end=end_date)
-    if 'Adj Close' not in data.columns:
-        st.error("Error: 'Adj Close' column not found in the downloaded data.")
-        return pd.DataFrame()  # Return an empty DataFrame to avoid further errors
-    return data['Adj Close']
+def fetch_alpha_vantage_data(tickers, start_date, end_date, api_key):
+    ts = TimeSeries(key=api_key, output_format="pandas")
+    data = pd.DataFrame()
+
+    for asset, ticker in tickers.items():
+        try:
+            df, _ = ts.get_daily_adjusted(symbol=ticker, outputsize="full")
+            df = df.loc[start_date:end_date]
+            df = df.rename(columns={"5. adjusted close": asset})
+            data[asset] = df[asset]
+        except Exception as e:
+            st.error(f"Error fetching data for {ticker}: {e}")
+            return pd.DataFrame()  # Return an empty DataFrame to avoid further errors
+
+    return data
 
 # Fetch Bitcoin data from CoinGecko
 @st.cache_data  # Cache data to improve performance
@@ -48,17 +58,21 @@ def fetch_bitcoin_data(start_date, end_date):
 
 # Main program
 def main():
+    if not api_key:
+        st.error("Please enter your Alpha Vantage API key in the sidebar.")
+        return
+
     # Fetch data
     st.write("📊 Fetching data...")
-    yahoo_data = fetch_yahoo_data(tickers, start_date, end_date)
-    if yahoo_data.empty:
-        st.error("Failed to fetch Yahoo Finance data. Please check the tickers and date range.")
+    alpha_vantage_data = fetch_alpha_vantage_data(tickers, start_date, end_date, api_key)
+    if alpha_vantage_data.empty:
+        st.error("Failed to fetch Alpha Vantage data. Please check the tickers and date range.")
         return  # Stop execution if data fetching fails
 
     bitcoin_data = fetch_bitcoin_data(start_date, end_date)
 
     # Combine data
-    combined_data = yahoo_data.copy()
+    combined_data = alpha_vantage_data.copy()
     combined_data["Bitcoin"] = bitcoin_data["price"].resample("D").ffill()  # Resample Bitcoin data to daily
 
     # Calculate daily returns
