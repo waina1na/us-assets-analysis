@@ -1,1 +1,8 @@
 yfinance
+streamlit
+yfinance
+pycoingecko
+pandas
+numpy
+seaborn
+matplotlib.pyplot
